@@ -14,6 +14,7 @@ proc-macro = true
 
 [features]
 backtrace = []
+location = []
 
 [dependencies]
 either = "1"

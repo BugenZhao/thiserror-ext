@@ -79,6 +79,10 @@ impl Field<'_> {
         type_is_backtrace(self.ty)
     }
 
+    pub(crate) fn is_location(&self) -> bool {
+        type_is_location(self.ty)
+    }
+
     /// Whether this field is the `source` field but not the `from` field.
     ///
     /// See [`Variant::source_field`].
@@ -178,4 +182,26 @@ fn type_is_backtrace(ty: &Type) -> bool {
 
     let last = path.segments.last().unwrap();
     last.ident == "Backtrace" && last.arguments.is_empty()
+}
+
+fn type_is_location(ty: &Type) -> bool {
+    let (lifetime, elem) = match ty {
+        Type::Reference(ty) => (&ty.lifetime, &ty.elem),
+        _ => return false,
+    };
+
+    if let Some(lifetime) = lifetime {
+        if lifetime.ident.to_string() != "static" {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    if let Type::Path(path) = elem.as_ref() {
+        let last = path.path.segments.last().unwrap();
+        last.ident == "Location"
+    } else {
+        false
+    }
 }

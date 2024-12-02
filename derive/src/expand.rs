@@ -14,6 +14,7 @@ struct Args {
     other_tys: Vec<Type>,
     source_arg: Option<TokenStream>,
     ctor_args: Vec<TokenStream>,
+    track_caller_attr: TokenStream,
 }
 
 enum SourceInto {
@@ -27,6 +28,7 @@ fn resolve_variant_args(variant: &Variant<'_>, source_into: SourceInto) -> Args 
     let mut other_tys = Vec::new();
     let mut source_arg = None;
     let mut ctor_args = Vec::new();
+    let mut track_caller_attr = TokenStream::new();
 
     for (i, field) in variant.fields.iter().enumerate() {
         let ty = &field.ty;
@@ -54,6 +56,9 @@ fn resolve_variant_args(variant: &Variant<'_>, source_into: SourceInto) -> Args 
                 ))
             };
             ctor_args.push(quote!(#member: #expr,))
+        } else if field.is_location() {
+            track_caller_attr = quote!(#[track_caller]);
+            ctor_args.push(quote!(#member: std::panic::Location::caller(),));
         } else if field.is_non_from_source() {
             match source_into {
                 SourceInto::Yes => {
@@ -79,6 +84,7 @@ fn resolve_variant_args(variant: &Variant<'_>, source_into: SourceInto) -> Args 
         other_tys,
         source_arg,
         ctor_args,
+        track_caller_attr,
     }
 }
 
@@ -113,6 +119,8 @@ fn resolve_args_for_macro(fields: &[Field<'_>]) -> MacroArgs {
                 ))
             };
             ctor_args.push(quote!(#member: #expr,))
+        } else if field.is_location() {
+            ctor_args.push(quote!(#member: std::panic::Location::caller(),))
         } else if field.is_message() {
             ctor_args.push(quote!(#member: ::std::format!($($fmt_arg)*).into(),));
         } else {
@@ -381,6 +389,7 @@ pub fn derive_ctor(input: &DeriveInput, t: DeriveCtorType) -> Result<TokenStream
             other_tys,
             source_arg,
             ctor_args,
+            track_caller_attr,
         } = resolve_variant_args(
             &variant,
             match t {
@@ -404,6 +413,7 @@ pub fn derive_ctor(input: &DeriveInput, t: DeriveCtorType) -> Result<TokenStream
 
                 quote!(
                     #[doc = #doc]
+                    #track_caller_attr
                     #vis fn #ctor_name(#source_arg #(#other_args)*) -> Self {
                         #ctor_expr.into()
                     }

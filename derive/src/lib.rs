@@ -42,6 +42,14 @@ mod thiserror;
 ///
 /// [`thiserror_ext::Box`]: derive@Box
 /// [`thiserror_ext::Arc`]: derive@Arc
+///
+/// # Location support
+///
+/// If you enable the `location` feature, and then create a parameter which has a
+/// type of [`&'static std::panic::Location<'static>`], then the location of the
+/// constructor call will be placed into that parameter.
+///
+/// [`&'static std::panic::Location<'static>`]: https://doc.rust-lang.org/stable/std/panic/struct.Location.html
 #[proc_macro_derive(Construct, attributes(thiserror_ext, construct))]
 pub fn derive_construct(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
